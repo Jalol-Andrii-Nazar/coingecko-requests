@@ -1,14 +1,11 @@
 const API_URL: &'static str = "https://www.coingecko.com/api/documentations/v3";
 
-struct Client {
-    api_url: String,
-}
+struct Client {}
 
 impl Client {
     fn new(&self) -> Self {
-        Client { api_url: API_URL.to_string(), }
+        Self {}
     }
-
 }
 
 #[tokio::main]
