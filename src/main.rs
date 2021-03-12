@@ -1,6 +1,15 @@
+use serde::{Deserialize};
+
 const API_URL: &'static str = "https://api.coingecko.com/api/v3";
 
 struct Client {}
+
+#[derive(Debug, Deserialize)]
+struct Coin {
+    id: String,
+    symbol: String,
+    name: String,
+}
 
 impl Client {
     fn new() -> Self {
@@ -11,6 +20,13 @@ impl Client {
         reqwest::get(format!("{}/ping", API_URL))
             .await?
             .text()
+            .await
+    }
+
+    async fn coins_list(&self) -> Result<Vec<Coin>, reqwest::Error> {
+        reqwest::get(format!("{}/coins/list", API_URL))
+            .await?
+            .json()
             .await
     }
 }
