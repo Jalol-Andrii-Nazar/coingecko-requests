@@ -29,9 +29,9 @@ impl <'de> Visitor<'de> for CoinRangeVisitor {
     where
         A: serde::de::MapAccess<'de>,
     {
-        let prices = map.next_entry::<String, Vec<Vec<f64>>>()?.unwrap().1.into_iter().map(|vec| (vec[0] as u64, vec[1])).collect();
-        let market_caps = map.next_entry::<String, Vec<Vec<f64>>>()?.unwrap().1.into_iter().map(|vec| (vec[0] as u64, vec[1])).collect();
-        let total_volumes = map.next_entry::<String, Vec<Vec<f64>>>()?.unwrap().1.into_iter().map(|vec| (vec[0] as u64, vec[1])).collect();
+        let prices = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
+        let market_caps = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
+        let total_volumes = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
         Ok(CoinRange { prices, market_caps, total_volumes })
     }
 }
