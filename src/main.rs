@@ -8,15 +8,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Ping result: {}", res);
     let coins_list = client.coins_list().await?;
     for coin in coins_list {
-        println!("{:?}", coin);
+      //  println!("{:?}", coin);
     }
     let currencies = client.simple_supported_vs_currencies().await?;
     for currency in currencies {
-        println!("{}",currency);
+    //    println!("{}",currency);
     }
 
-    //let cryptoRange = client.coins_id_market_chart_range("btc", "usd", 1392577232, 1392677232).await?;
-    //println!("{:?}", cryptoRange);
+    let crypto_range = client.coins_id_market_chart_range("bitcoin", "usd", 1392577232, 1422577232).await?;
+    println!("{:?}", crypto_range);
 
     Ok(())
 }
