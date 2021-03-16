@@ -1,5 +1,5 @@
 [package]
-name = "coingecko-requests"
+name = "coingecko_requests"
 version = "0.1.0"
 authors = ["CODPUD <jalol.kham.2401@gmail.com>", "Nazar Kalinowski <nazark@tutanota.com>"]
 edition = "2018"
