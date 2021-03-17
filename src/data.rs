@@ -2,16 +2,16 @@ use serde::{Deserialize, de::Visitor};
 
 #[derive(Debug, Deserialize)]
 pub struct Coin {
-    id: String,
-    symbol: String,
-    name: String,
+    pub id: String,
+    pub symbol: String,
+    pub name: String,
 }
 
 #[derive(Debug)]
 pub struct CoinRange {
-    prices: Vec<(u64, f64)>,
-    market_caps: Vec<(u64, f64)>,
-    total_volumes: Vec<(u64, f64)>,
+    pub prices: Vec<(u64, f64)>,
+    pub market_caps: Vec<(u64, f64)>,
+    pub total_volumes: Vec<(u64, f64)>,
 }
 
 struct CoinRangeVisitor;
