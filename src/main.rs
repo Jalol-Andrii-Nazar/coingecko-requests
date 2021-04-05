@@ -34,5 +34,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let currencies_2 = caching_client.supported_vs_currencies().await?;
     println!("{:?}", currencies_2);
 
+    caching_client.coins_list().await?;
+    caching_client.coins_list().await?;
+
     Ok(())
 }
