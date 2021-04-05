@@ -11,8 +11,6 @@ impl CachingClient {
         let mut conn: SqliteConnection = SqliteConnection::connect("sqlite::memory:").await?;
         let create_supported_vs_currencies_query = sqlx::query("CREATE TABLE IF NOT EXISTS supported_vs_currencies (name TEXT)");
         create_supported_vs_currencies_query.execute(&mut conn).await?;
-        // let add_test_currency = sqlx::query("INSERT INTO supported_vs_currencies VALUES ('my test currency')");
-        // add_test_currency.execute(&mut conn).await?;
         Ok(CachingClient {
             api_client,
             conn
@@ -35,12 +33,10 @@ impl CachingClient {
             println!("Getting the data from API!");
             let data = self.api_client.supported_vs_currencies().await?;
             for name in data.iter() {
-                //println!("1...");
                 let insert_query = sqlx::query("INSERT INTO supported_vs_currencies (name) VALUES (?)")
-                    .bind(name);
-                //println!("2...");
-                insert_query.execute(&mut self.conn).await?;
-                //println!("3...");
+                    .bind(name)
+                    .execute(&mut self.conn)
+                    .await?;
             }
             Ok(data)
         }
