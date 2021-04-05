@@ -10,13 +10,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for coin in coins_list {
       //  println!("{:?}", coin);
     }
-    let currencies = client.simple_supported_vs_currencies().await?;
+    let currencies = client.supported_vs_currencies().await?;
     for currency in currencies {
     //    println!("{}",currency);
     }
 
-    let crypto_range = client.coins_id_market_chart_range("bitcoin", "usd", 1392577232, 1422577232).await?;
+    let crypto_range = client.market_chart_range("bitcoin", "usd", 1392577232, 1422577232).await?;
     println!("{:?}", crypto_range);
+
+    let prices = client.price(&vec!["bitcoin"], &vec!["usd", "eur"]).await?;
+    println!("{:?}", prices);
 
     Ok(())
 }
