@@ -25,7 +25,7 @@ impl CachingClient {
             let name: &str = row.try_get("name")?;
             vec.push(name.to_string());
         }
-        drop(rows);
+        drop(rows); //Required to take a mutable borrow to self later
         if !vec.is_empty() {
             println!("Getting the data from DB!");
             Ok(vec)
