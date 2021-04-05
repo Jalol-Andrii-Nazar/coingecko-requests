@@ -25,8 +25,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // println!("{:?}", prices);
 
     let mut caching_client = CachingClient::new(client).await?;
-    let currencies = caching_client.supported_vs_currencies().await?;
-    println!("{:?}", currencies);
+
+    println!("Before getting supported vs currencies for the first time!");
+    let currencies_1 = caching_client.supported_vs_currencies().await?;
+    println!("{:?}", currencies_1);
+
+    println!("Before getting supported vs currencies for the second time!");
+    let currencies_2 = caching_client.supported_vs_currencies().await?;
+    println!("{:?}", currencies_2);
 
     Ok(())
 }
