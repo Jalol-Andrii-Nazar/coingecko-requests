@@ -30,7 +30,7 @@ impl Client {
             .await
     }
 
-    pub async fn coins_id_market_chart_range(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::CoinRange, reqwest::Error> {
+    pub async fn coins_id_market_chart_range(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::MarketChart, reqwest::Error> {
         reqwest::get(format!("{}/coins/{}/market_chart/range?vs_currency={}&from={}&to={}", API_URL, id, currency, from, to))
             .await?
             .json()

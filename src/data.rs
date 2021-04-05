@@ -8,16 +8,16 @@ pub struct Coin {
 }
 
 #[derive(Debug)]
-pub struct CoinRange {
+pub struct MarketChart {
     pub prices: Vec<(u64, f64)>,
     pub market_caps: Vec<(u64, f64)>,
     pub total_volumes: Vec<(u64, f64)>,
 }
 
-struct CoinRangeVisitor;
+struct MarketChartVisitor;
 
-impl <'de> Visitor<'de> for CoinRangeVisitor {
-    type Value = CoinRange;
+impl <'de> Visitor<'de> for MarketChartVisitor {
+    type Value = MarketChart;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(formatter, "CoinGecko input")
@@ -30,14 +30,14 @@ impl <'de> Visitor<'de> for CoinRangeVisitor {
         let prices = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
         let market_caps = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
         let total_volumes = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
-        Ok(CoinRange { prices, market_caps, total_volumes })
+        Ok(MarketChart { prices, market_caps, total_volumes })
     }
 }
 
-impl <'de> Deserialize<'de> for CoinRange {
+impl <'de> Deserialize<'de> for MarketChart {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de> {
-        deserializer.deserialize_map(CoinRangeVisitor {})
+        deserializer.deserialize_map(MarketChartVisitor {})
     }
 }
