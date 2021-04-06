@@ -1,43 +1,75 @@
 use serde::{Deserialize, de::Visitor};
 
-#[derive(Debug, Deserialize)]
-pub struct Coin {
+#[derive(Debug, Clone, Deserialize)]
+pub struct RawVsCurrency {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RawCoin {
     pub id: String,
     pub symbol: String,
     pub name: String,
 }
 
-#[derive(Debug)]
-pub struct MarketChart {
+#[derive(Debug, Clone)]
+pub struct RawMarketChart {
     pub prices: Vec<(u64, f64)>,
     pub market_caps: Vec<(u64, f64)>,
     pub total_volumes: Vec<(u64, f64)>,
 }
 
-struct MarketChartVisitor;
+#[derive(Debug, Clone)]
+pub struct VsCurrency {
+    pub rowid: i64,
+    pub raw: RawVsCurrency,
+    pub favourite: bool,
+}
 
-impl <'de> Visitor<'de> for MarketChartVisitor {
-    type Value = MarketChart;
+#[derive(Debug, Clone)]
+pub struct Coin {
+    pub rowid: i64,
+    pub raw: RawCoin,
+    pub favourite: bool,
+}
+
+struct RawMarketChartVisitor;
+
+impl <'de> Visitor<'de> for RawMarketChartVisitor {
+    type Value = RawMarketChart;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(formatter, "CoinGecko input")
+        write!(formatter, "Correct JSON from the CoinGecko API")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: serde::de::MapAccess<'de>,
     {
-        let prices = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
-        let market_caps = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
-        let total_volumes = map.next_entry::<String, Vec<[f64; 2]>>()?.unwrap().1.into_iter().map(|[timestamp, value]| (timestamp as u64, value)).collect();
-        Ok(MarketChart { prices, market_caps, total_volumes })
+        fn parse_next_map_entry<'de, A>(map: &mut A) -> Result<Vec<(u64, f64)>, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+        {
+            Ok(map
+                .next_entry::<String, Vec<[f64; 2]>>()?
+                .unwrap()
+                .1
+                .into_iter()
+                .map(|[timestamp, value]| (timestamp as u64, value))
+                .collect())
+        }
+        let prices = parse_next_map_entry(&mut map)?;
+        let market_caps = parse_next_map_entry(&mut map)?;
+        let total_volumes = parse_next_map_entry(&mut map)?;
+        Ok(RawMarketChart { prices, market_caps, total_volumes })
     }
 }
 
-impl <'de> Deserialize<'de> for MarketChart {
+impl <'de> Deserialize<'de> for RawMarketChart {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de> {
-        deserializer.deserialize_map(MarketChartVisitor {})
+        D: serde::Deserializer<'de>
+    {
+        deserializer.deserialize_map(RawMarketChartVisitor {})
     }
 }

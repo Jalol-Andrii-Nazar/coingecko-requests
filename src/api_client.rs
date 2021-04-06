@@ -31,23 +31,29 @@ impl Client {
             .await
     }
 
-    pub async fn supported_vs_currencies(&self) -> Result<Vec<String>, reqwest::Error> {
+    pub async fn supported_vs_currencies(&self) -> Result<Vec<data::RawVsCurrency>, reqwest::Error> {
         reqwest::get(format!("{}/simple/supported_vs_currencies", API_URL))
             .await?
-            .json()
+            .json::<Vec<String>>()
             .await
+            .map(|vec| vec
+                .into_iter()
+                .map(|name| data::RawVsCurrency {
+                    name
+                })
+                .collect())
     }
 
     //coins
 
-    pub async fn coins_list(&self) -> Result<Vec<data::Coin>, reqwest::Error> {
+    pub async fn coins_list(&self) -> Result<Vec<data::RawCoin>, reqwest::Error> {
         reqwest::get(format!("{}/coins/list", API_URL))
             .await?
             .json()
             .await
     }
 
-    pub async fn market_chart_range(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::MarketChart, reqwest::Error> {
+    pub async fn market_chart_range(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::RawMarketChart, reqwest::Error> {
         reqwest::get(format!("{}/coins/{}/market_chart/range?vs_currency={}&from={}&to={}", API_URL, id, currency, from, to))
             .await?
             .json()
