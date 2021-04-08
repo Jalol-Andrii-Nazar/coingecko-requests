@@ -31,7 +31,7 @@ impl Client {
             .await
     }
 
-    pub async fn supported_vs_currencies(&self) -> Result<Vec<data::RawVsCurrency>, reqwest::Error> {
+    pub async fn vs_currencies(&self) -> Result<Vec<data::RawVsCurrency>, reqwest::Error> {
         reqwest::get(format!("{}/simple/supported_vs_currencies", API_URL))
             .await?
             .json::<Vec<String>>()
@@ -46,14 +46,15 @@ impl Client {
 
     //coins
 
-    pub async fn coins_list(&self) -> Result<Vec<data::RawCoin>, reqwest::Error> {
+    pub async fn coins(&self) -> Result<Vec<data::RawCoin>, reqwest::Error> {
         reqwest::get(format!("{}/coins/list", API_URL))
             .await?
             .json()
             .await
     }
 
-    pub async fn market_chart_range(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::RawMarketChart, reqwest::Error> {
+    //WARNING: a big pitfall is that input data is in SECONDS but the output data is in MILLISECONDS
+    pub async fn market_chart(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::RawMarketChart, reqwest::Error> {
         reqwest::get(format!("{}/coins/{}/market_chart/range?vs_currency={}&from={}&to={}", API_URL, id, currency, from, to))
             .await?
             .json()

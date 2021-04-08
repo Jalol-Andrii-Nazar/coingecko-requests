@@ -6,13 +6,15 @@ pub mod caching_client;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = api_client::Client::new();
 
+    println!("Before");
     let mut caching_client = caching_client::Client::new(client).await?;
+    println!("After");
 
-    caching_client.supported_vs_currencies().await?;
-    caching_client.supported_vs_currencies().await?;
+    caching_client.vs_currencies().await?;
+    caching_client.vs_currencies().await?;
 
-    caching_client.coins_list().await?;
-    caching_client.coins_list().await?;
+    caching_client.coins().await?;
+    caching_client.coins().await?;
 
     Ok(())
 }

@@ -14,9 +14,9 @@ pub struct RawCoin {
 
 #[derive(Debug, Clone)]
 pub struct RawMarketChart {
-    pub prices: Vec<(u64, f64)>,
-    pub market_caps: Vec<(u64, f64)>,
-    pub total_volumes: Vec<(u64, f64)>,
+    pub prices: Vec<(u128, f64)>,
+    pub market_caps: Vec<(u128, f64)>,
+    pub total_volumes: Vec<(u128, f64)>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +46,7 @@ impl <'de> Visitor<'de> for RawMarketChartVisitor {
     where
         A: serde::de::MapAccess<'de>,
     {
-        fn parse_next_map_entry<'de, A>(map: &mut A) -> Result<Vec<(u64, f64)>, A::Error>
+        fn parse_next_map_entry<'de, A>(map: &mut A) -> Result<Vec<(u128, f64)>, A::Error>
         where
             A: serde::de::MapAccess<'de>,
         {
@@ -55,7 +55,7 @@ impl <'de> Visitor<'de> for RawMarketChartVisitor {
                 .unwrap()
                 .1
                 .into_iter()
-                .map(|[timestamp, value]| (timestamp as u64, value))
+                .map(|[timestamp, value]| (timestamp as u128, value))
                 .collect())
         }
         let prices = parse_next_map_entry(&mut map)?;
