@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use directories::ProjectDirs;
-use sqlx::{Connection, Row, SqliteConnection};
+use sqlx::{Connection, Row, SqliteConnection, sqlite::SqliteRow};
 use futures::TryStreamExt;
 use crate::{data, api_client};
 
@@ -152,8 +152,69 @@ impl Client {
         Ok(())
     }
 
-    pub async fn market_chart(&mut self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::RawMarketChart, Box<dyn std::error::Error>> {
-        Ok(self.api_client.market_chart(id, currency, from, to).await?)
+    pub async fn market_chart(&mut self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::MarketChart, Box<dyn std::error::Error>> {
+        let meta_rowid_opt: Option<i64> = sqlx::query("SELECT rowid FROM market_chart_range_meta WHERE id = ? AND currency = ? AND from_timestamp = ? AND to_timestamp = ?")
+            .bind(id)
+            .bind(currency)
+            .bind(from as i64)
+            .bind(to as i64)
+            .fetch_optional(&mut self.conn)
+            .await?
+            .map(|row: SqliteRow| {
+                let rowid_opt: Option<i64> = row.try_get("rowid").ok();
+                rowid_opt
+            })
+            .flatten();
+        
+        let meta_rowid = match meta_rowid_opt {
+            Some(it) => { it }
+            None => { self.populate_market_chart_data(id, currency, from, to).await? }
+        };
+
+        let mut prices: Vec<(u128, f64)> = Vec::new();
+        let mut prices_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_prices")
+            .fetch(&mut self.conn);
+        while let Some(row) = prices_rows.try_next().await? {
+            let timestamp: i64 = row.try_get("timestamp")?;
+            let timestamp: u128 = timestamp as u128;
+            let value: f64 = row.try_get("value")?;
+            prices.push((timestamp, value));
+        }
+        drop(prices_rows);
+        let prices = prices;
+
+        let mut market_caps: Vec<(u128, f64)> = Vec::new();
+        let mut market_caps_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_market_caps")
+            .fetch(&mut self.conn);
+        while let Some(row) = market_caps_rows.try_next().await? {
+            let timestamp: i64 = row.try_get("timestamp")?;
+            let timestamp: u128 = timestamp as u128;
+            let value: f64 = row.try_get("value")?;
+            market_caps.push((timestamp, value));
+        }
+        drop(market_caps_rows);
+        let market_caps = market_caps;
+
+        let mut total_volumes: Vec<(u128, f64)> = Vec::new();
+        let mut total_volumes_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_total_volumes")
+            .fetch(&mut self.conn);
+        while let Some(row) = total_volumes_rows.try_next().await? {
+            let timestamp: i64 = row.try_get("timestamp")?;
+            let timestamp: u128 = timestamp as u128;
+            let value: f64 = row.try_get("value")?;
+            total_volumes.push((timestamp, value));
+        }
+        drop(total_volumes_rows);
+        let total_volumes = total_volumes;
+
+        Ok(data::MarketChart {
+            meta_rowid,
+            raw: data::RawMarketChart {
+                prices,
+                market_caps,
+                total_volumes,
+            }
+        })
     }
 
     async fn populate_vs_currencies(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -187,5 +248,48 @@ impl Client {
                 .await?;
         }
         Ok(())
+    }
+
+    async fn populate_market_chart_data(&mut self, id: &str, currency: &str, from: u64, to: u64) -> Result<i64, Box<dyn std::error::Error>> {
+        println!("Receiving market chart data from the CoinGecko API...");
+        let data = self.api_client.market_chart(id, currency, from, to).await?;
+        let meta_rowid = sqlx::query("INSERT INTO market_chart_range_meta (id, currency, from_timestamp, to_timestamp) VALUES (?, ?, ?, ?)")
+            .bind(id)
+            .bind(currency)
+            .bind(from as i64)
+            .bind(to as i64)
+            .execute(&mut self.conn)
+            .await?
+            .last_insert_rowid();
+        println!("meta_rowid: {}", meta_rowid);
+        
+        for (price_timestamp, price_value) in data.prices.iter() {
+            sqlx::query("INSERT INTO market_chart_range_prices (parent_rowid, timestamp, value) VALUES (?, ?, ?)")
+                .bind(meta_rowid)
+                .bind(*price_timestamp as i64)
+                .bind(*price_value)
+                .execute(&mut self.conn)
+                .await?;
+        }
+        
+        for (market_cap_timestamp, market_cap_value) in data.prices.iter() {
+            sqlx::query("INSERT INTO market_chart_range_market_caps (parent_rowid, timestamp, value) VALUES (?, ?, ?)")
+                .bind(meta_rowid)
+                .bind(*market_cap_timestamp as i64)
+                .bind(*market_cap_value)
+                .execute(&mut self.conn)
+                .await?;
+        }
+        
+        for (total_volume_timestamp, total_volume_value) in data.prices.iter() {
+            sqlx::query("INSERT INTO market_chart_range_total_volumes (parent_rowid, timestamp, value) VALUES (?, ?, ?)")
+                .bind(meta_rowid)
+                .bind(*total_volume_timestamp as i64)
+                .bind(*total_volume_value)
+                .execute(&mut self.conn)
+                .await?;
+        }
+        
+        Ok(meta_rowid)
     }
 }

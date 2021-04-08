@@ -33,6 +33,12 @@ pub struct Coin {
     pub favourite: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct MarketChart {
+    pub meta_rowid: i64,
+    pub raw: RawMarketChart,
+}
+
 struct RawMarketChartVisitor;
 
 impl <'de> Visitor<'de> for RawMarketChartVisitor {
