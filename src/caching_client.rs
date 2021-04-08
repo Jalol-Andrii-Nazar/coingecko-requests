@@ -152,8 +152,8 @@ impl Client {
         Ok(())
     }
 
-    pub async fn market_chart(&mut self, _id: &str, _currency: &str, _from: u64, _to: u64) -> Result<data::RawMarketChart, Box<dyn std::error::Error>> {
-        todo!()        
+    pub async fn market_chart(&mut self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::RawMarketChart, Box<dyn std::error::Error>> {
+        Ok(self.api_client.market_chart(id, currency, from, to).await?)
     }
 
     async fn populate_vs_currencies(&mut self) -> Result<(), Box<dyn std::error::Error>> {
