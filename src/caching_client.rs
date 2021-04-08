@@ -29,13 +29,13 @@ impl Client {
         let connection_url = format!("sqlite:{}", db_path_str);
         let mut conn: SqliteConnection = SqliteConnection::connect(&connection_url).await?;
 
-        sqlx::query("CREATE TABLE IF NOT EXISTS vs_currencies (name TEXT, favourite BOOL)")
+        sqlx::query("CREATE TABLE IF NOT EXISTS vs_currencies (rowid INTEGER PRIMARY KEY, name TEXT, favourite BOOL)")
             .execute(&mut conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS coins (id TEXT, symbol TEXT, name TEXT, favourite BOOL)")
+        sqlx::query("CREATE TABLE IF NOT EXISTS coins (rowid INTEGER PRIMARY KEY, id TEXT, symbol TEXT, name TEXT, favourite BOOL)")
             .execute(&mut conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_meta (id TEXT, currency TEXT, from_timestamp INTEGER, to_timestamp INTEGER)")
+        sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_meta (rowid INTEGER PRIMARY KEY, id TEXT, currency TEXT, from_timestamp INTEGER, to_timestamp INTEGER)")
             .execute(&mut conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_prices (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
@@ -261,7 +261,6 @@ impl Client {
             .execute(&mut self.conn)
             .await?
             .last_insert_rowid();
-        println!("meta_rowid: {}", meta_rowid);
         
         for (price_timestamp, price_value) in data.prices.iter() {
             sqlx::query("INSERT INTO market_chart_range_prices (parent_rowid, timestamp, value) VALUES (?, ?, ?)")
