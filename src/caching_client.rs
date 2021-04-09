@@ -19,6 +19,7 @@ impl Client {
         let mut db_path = data_dir;
         db_path.push("data");
         db_path.set_extension("db");
+        println!("DB path: {:?}", db_path);
         tokio::fs::OpenOptions::new()
             .create(true)
             .write(true)
