@@ -173,7 +173,8 @@ impl Client {
         };
 
         let mut prices: Vec<(u128, f64)> = Vec::new();
-        let mut prices_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_prices")
+        let mut prices_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_prices WHERE parent_rowid = ?")
+            .bind(meta_rowid)
             .fetch(&mut self.conn);
         while let Some(row) = prices_rows.try_next().await? {
             let timestamp: i64 = row.try_get("timestamp")?;
@@ -185,7 +186,8 @@ impl Client {
         let prices = prices;
 
         let mut market_caps: Vec<(u128, f64)> = Vec::new();
-        let mut market_caps_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_market_caps")
+        let mut market_caps_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_market_caps WHERE parent_rowid = ?")
+            .bind(meta_rowid)
             .fetch(&mut self.conn);
         while let Some(row) = market_caps_rows.try_next().await? {
             let timestamp: i64 = row.try_get("timestamp")?;
@@ -197,7 +199,8 @@ impl Client {
         let market_caps = market_caps;
 
         let mut total_volumes: Vec<(u128, f64)> = Vec::new();
-        let mut total_volumes_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_total_volumes")
+        let mut total_volumes_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_total_volumes WHERE parent_rowid = ?")
+            .bind(meta_rowid)
             .fetch(&mut self.conn);
         while let Some(row) = total_volumes_rows.try_next().await? {
             let timestamp: i64 = row.try_get("timestamp")?;
