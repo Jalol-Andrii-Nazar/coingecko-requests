@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::data;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Client {}
 
 impl Client {

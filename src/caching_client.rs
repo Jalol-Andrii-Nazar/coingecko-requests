@@ -5,6 +5,7 @@ use sqlx::{Connection, Row, SqliteConnection, sqlite::SqliteRow};
 use futures::TryStreamExt;
 use crate::{data, api_client};
 
+#[derive(Debug)]
 pub struct Client {
     api_client: api_client::Client,
     conn: SqliteConnection
