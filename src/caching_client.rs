@@ -240,7 +240,7 @@ impl Client {
 
     async fn populate_coins(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         println!("Receiving coins data from the CoinGecko API...");
-        let default_favourite_coins = vec!["btc", "ltc", "eth"];
+        let default_favourite_coins = vec!["btc", "ltc", "eth", "doge", "xmr"];
         let data = self.api_client.coins().await?;
         for coin in data.iter() {
             let is_favourite = default_favourite_coins.contains(&coin.symbol.as_str());
