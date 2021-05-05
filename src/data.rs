@@ -1,11 +1,11 @@
 use serde::{Deserialize, de::Visitor};
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct RawVsCurrency {
     pub name: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct RawCoin {
     pub id: String,
     pub symbol: String,
@@ -19,14 +19,14 @@ pub struct RawMarketChart {
     pub total_volumes: Vec<(u128, f64)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VsCurrency {
     pub rowid: i64,
     pub raw: RawVsCurrency,
     pub favourite: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Coin {
     pub rowid: i64,
     pub raw: RawCoin,
