@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, de::Visitor};
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -77,5 +79,37 @@ impl <'de> Deserialize<'de> for RawMarketChart {
         D: serde::Deserializer<'de>
     {
         deserializer.deserialize_map(RawMarketChartVisitor {})
+    }
+}
+
+impl Display for RawVsCurrency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl Display for RawCoin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.id)
+    }
+}
+
+impl Display for VsCurrency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}] ", self.rowid)?;
+        if self.favourite {
+            write!(f, "✰")?;
+        }
+        write!(f, "{}", self.raw.to_string())
+    }
+}
+
+impl Display for Coin {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}] ", self.rowid)?;
+        if self.favourite {
+            write!(f, "✰ ")?;
+        }
+        write!(f, "{}", self.raw.to_string())
     }
 }
