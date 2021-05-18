@@ -96,9 +96,10 @@ impl Display for RawCoin {
 
 impl Display for VsCurrency {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] ", self.rowid)?;
         if self.favourite {
-            write!(f, "✰")?;
+            write!(f, "[{}!] ", self.rowid)?;
+        } else {
+            write!(f, "[{}] ", self.rowid)?;
         }
         write!(f, "{}", self.raw.to_string())
     }
@@ -106,9 +107,10 @@ impl Display for VsCurrency {
 
 impl Display for Coin {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] ", self.rowid)?;
         if self.favourite {
-            write!(f, "✰ ")?;
+            write!(f, "[{}!] ", self.rowid)?;
+        } else {
+            write!(f, "[{}] ", self.rowid)?;
         }
         write!(f, "{}", self.raw.to_string())
     }
