@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use directories::ProjectDirs;
-use sqlx::{Connection, Row, SqliteConnection, sqlite::SqliteRow};
+use sqlx::{Connection, Row, SqliteConnection, SqlitePool, sqlite::SqliteRow};
 use futures::TryStreamExt;
 use crate::{data, api_client};
 
 #[derive(Debug)]
 pub struct Client {
     api_client: api_client::Client,
-    conn: SqliteConnection
+    conn: SqlitePool
 }
 
 impl Client {
@@ -29,28 +29,28 @@ impl Client {
         let db_path_str = db_path.to_str()
             .ok_or::<Box<dyn std::error::Error>>(From::from("db_path cannot be converted to str!"))?;
         let connection_url = format!("sqlite:{}", db_path_str);
-        let mut conn: SqliteConnection = SqliteConnection::connect(&connection_url).await?;
+        let mut conn: SqlitePool = SqlitePool::connect(&connection_url).await?;
 
         sqlx::query("CREATE TABLE IF NOT EXISTS vs_currencies (rowid INTEGER PRIMARY KEY, name TEXT, favourite BOOL)")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS coins (rowid INTEGER PRIMARY KEY, id TEXT, symbol TEXT, name TEXT, favourite BOOL)")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_meta (rowid INTEGER PRIMARY KEY, id TEXT, currency TEXT, from_timestamp INTEGER, to_timestamp INTEGER)")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_prices (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_market_caps (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_total_volumes (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
         sqlx::query("CREATE TABLE IF NOT EXISTS triggers (trigger_id INTEGER PRIMARY KEY AUTOINCREMENT, coin TEXT, currency TEXT, old_price INTEGER, from_ INTEGER, to_ INTEGER)")
-            .execute(&mut conn)
+            .execute(&conn)
             .await?;
 
         Ok(Self {
@@ -69,14 +69,14 @@ impl Client {
 
     pub async fn vs_currencies(&mut self) -> Result<Vec<data::VsCurrency>, Box<dyn std::error::Error>> {
         let count: i64 = sqlx::query("SELECT COUNT(*) FROM vs_currencies")
-            .fetch_one(&mut self.conn)
+            .fetch_one(&self.conn)
             .await?
             .try_get(0)?;
         if count <= 0 {
             self.populate_vs_currencies().await?;
         }
         let mut rows = sqlx::query("SELECT rowid, name, favourite FROM vs_currencies")
-            .fetch(&mut self.conn);
+            .fetch(&self.conn);
         let mut vec = Vec::new();
         while let Some(row) = rows.try_next().await? {
             let rowid: i64 = row.try_get("rowid")?;
@@ -105,21 +105,21 @@ impl Client {
         sqlx::query("UPDATE vs_currencies SET favourite = ? WHERE rowid = ?")
             .bind(is_favourite)
             .bind(id)
-            .execute(&mut self.conn)
+            .execute(&self.conn)
             .await?;
         Ok(())
     }
 
     pub async fn coins(&mut self) -> Result<Vec<data::Coin>, Box<dyn std::error::Error>> {
         let count: i64 = sqlx::query("SELECT COUNT(*) FROM coins")
-            .fetch_one(&mut self.conn)
+            .fetch_one(&self.conn)
             .await?
             .try_get(0)?;
         if count <= 0 {
             self.populate_coins().await?;
         }
         let mut rows = sqlx::query("SELECT rowid, id, symbol, name, favourite FROM coins")
-            .fetch(&mut self.conn);
+            .fetch(&self.conn);
         let mut vec = Vec::new();
         while let Some(row) = rows.try_next().await? {
             let rowid: i64 = row.try_get("rowid")?;
@@ -152,7 +152,7 @@ impl Client {
         sqlx::query("UPDATE coins SET favourite = ? WHERE rowid = ?")
             .bind(is_favourite)
             .bind(id)
-            .execute(&mut self.conn)
+            .execute(&self.conn)
             .await?;
         Ok(())
     }
@@ -163,7 +163,7 @@ impl Client {
             .bind(currency)
             .bind(from as i64)
             .bind(to as i64)
-            .fetch_optional(&mut self.conn)
+            .fetch_optional(&self.conn)
             .await?
             .map(|row: SqliteRow| {
                 let rowid_opt: Option<i64> = row.try_get("rowid").ok();
@@ -179,7 +179,7 @@ impl Client {
         let mut prices: Vec<(u128, f64)> = Vec::new();
         let mut prices_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_prices WHERE parent_rowid = ?")
             .bind(meta_rowid)
-            .fetch(&mut self.conn);
+            .fetch(&self.conn);
         while let Some(row) = prices_rows.try_next().await? {
             let timestamp: i64 = row.try_get("timestamp")?;
             let timestamp: u128 = timestamp as u128;
@@ -192,7 +192,7 @@ impl Client {
         let mut market_caps: Vec<(u128, f64)> = Vec::new();
         let mut market_caps_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_market_caps WHERE parent_rowid = ?")
             .bind(meta_rowid)
-            .fetch(&mut self.conn);
+            .fetch(&self.conn);
         while let Some(row) = market_caps_rows.try_next().await? {
             let timestamp: i64 = row.try_get("timestamp")?;
             let timestamp: u128 = timestamp as u128;
@@ -205,7 +205,7 @@ impl Client {
         let mut total_volumes: Vec<(u128, f64)> = Vec::new();
         let mut total_volumes_rows = sqlx::query("SELECT timestamp, value FROM market_chart_range_total_volumes WHERE parent_rowid = ?")
             .bind(meta_rowid)
-            .fetch(&mut self.conn);
+            .fetch(&self.conn);
         while let Some(row) = total_volumes_rows.try_next().await? {
             let timestamp: i64 = row.try_get("timestamp")?;
             let timestamp: u128 = timestamp as u128;
@@ -236,7 +236,7 @@ impl Client {
             sqlx::query("INSERT INTO vs_currencies (name, favourite) VALUES (?, ?)")
                 .bind(name)
                 .bind(is_favourite)
-                .execute(&mut self.conn)
+                .execute(&self.conn)
                 .await?;
         }
         Ok(())
@@ -253,7 +253,7 @@ impl Client {
                 .bind(&coin.symbol)
                 .bind(&coin.name)
                 .bind(is_favourite)
-                .execute(&mut self.conn)
+                .execute(&self.conn)
                 .await?;
         }
         Ok(())
@@ -267,7 +267,7 @@ impl Client {
             .bind(currency)
             .bind(from as i64)
             .bind(to as i64)
-            .execute(&mut self.conn)
+            .execute(&self.conn)
             .await?
             .last_insert_rowid();
         
@@ -276,7 +276,7 @@ impl Client {
                 .bind(meta_rowid)
                 .bind(*price_timestamp as i64)
                 .bind(*price_value)
-                .execute(&mut self.conn)
+                .execute(&self.conn)
                 .await?;
         }
         
@@ -285,7 +285,7 @@ impl Client {
                 .bind(meta_rowid)
                 .bind(*market_cap_timestamp as i64)
                 .bind(*market_cap_value)
-                .execute(&mut self.conn)
+                .execute(&self.conn)
                 .await?;
         }
         
@@ -294,7 +294,7 @@ impl Client {
                 .bind(meta_rowid)
                 .bind(*total_volume_timestamp as i64)
                 .bind(*total_volume_value)
-                .execute(&mut self.conn)
+                .execute(&self.conn)
                 .await?;
         }
         
@@ -308,9 +308,8 @@ impl Client {
             .bind(old_price as i64)
             .bind(from as i64)
             .bind(to as i64)
-            .execute(&mut self.conn)
+            .execute(&self.conn)
             .await?;
         Ok(())
     }
-
 }
