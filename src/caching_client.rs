@@ -49,7 +49,7 @@ impl Client {
         sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_total_volumes (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS triggers (trigger_id INTEGER PRIMARY KEY AUTOINCREMENT, coin TEXT, currency TEXT, old_price INTEGER, new_price INTEGER)")
+        sqlx::query("CREATE TABLE IF NOT EXISTS triggers (trigger_id INTEGER PRIMARY KEY AUTOINCREMENT, coin TEXT, currency TEXT, old_price REAL, new_price REAL)")
             .execute(&conn)
             .await?;
 
@@ -301,12 +301,12 @@ impl Client {
         Ok(meta_rowid)
     }
 
-    pub async fn add_trigger(&mut self, coin: &str, currency: &str, old_price: u64, value: u64) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn add_trigger(&mut self, coin: &str, currency: &str, old_price: f64, value: f64) -> Result<(), Box<dyn std::error::Error>> {
         sqlx::query("INSERT INTO triggers(coin, currency, old_price, new_price) VALUES (?, ?, ?, ?)")
             .bind(coin)
             .bind(currency)
-            .bind(old_price as i64)
-            .bind(value as i64)
+            .bind(old_price)
+            .bind(value)
             .execute(&self.conn)
             .await?;
         Ok(())

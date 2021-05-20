@@ -45,8 +45,8 @@ pub struct MarketChart {
 pub struct Trigger {
     pub coin: String,
     pub currency: String, 
-    pub old_price: i64, 
-    pub new_price: i64,
+    pub old_price: f64, 
+    pub new_price: f64,
 }
 
 struct RawMarketChartVisitor;
