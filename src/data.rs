@@ -46,8 +46,8 @@ pub struct Trigger {
     pub rowid: i64,
     pub coin_id: i64,
     pub currency_id: i64, 
-    pub old_price: f64, 
-    pub new_price: f64,
+    pub initial_price: f64, 
+    pub target_price: f64,
 }
 
 struct RawMarketChartVisitor;

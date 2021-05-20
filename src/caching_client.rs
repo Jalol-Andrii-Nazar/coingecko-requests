@@ -89,12 +89,12 @@ impl Client {
         sqlx::query(
             "CREATE TABLE IF NOT EXISTS triggers (
                 rowid INTEGER PRIMARY KEY, 
-                coin_id TEXT, 
-                currency_id TEXT, 
+                coin_id INTEGER, 
+                currency_id INTEGER, 
                 initial_price REAL, 
                 target_price REAL,
-                CONSTRAINT triggers__coin_id_fk FOREIGN KEY (coin_id) REFERNCES coins (rowid),
-                CONSTRAINT triggers__currency_id_fk FOREIGN KEY (currency_id) REFERENCES currencies (rowid)"
+                CONSTRAINT triggers__coin_id_fk FOREIGN KEY (coin_id) REFERENCES coins (rowid),
+                CONSTRAINT triggers__currency_id_fk FOREIGN KEY (currency_id) REFERENCES vs_currencies (rowid))"
             )
             .execute(&conn)
             .await?;
@@ -347,11 +347,11 @@ impl Client {
         Ok(meta_rowid)
     }
 
-    pub async fn add_trigger(&self, coin_id: i64, currency_id: i64, init_price: f64, target_price: f64) -> Result<(), Box<dyn std::error::Error>> {
-        sqlx::query("INSERT INTO triggers (coin_id, currency_id, init_price, target_price) VALUES (?, ?, ?, ?)")
+    pub async fn add_trigger(&self, coin_id: i64, currency_id: i64, initial_price: f64, target_price: f64) -> Result<(), Box<dyn std::error::Error>> {
+        sqlx::query("INSERT INTO triggers (coin_id, currency_id, initial_price, target_price) VALUES (?, ?, ?, ?)")
             .bind(coin_id)
             .bind(currency_id)
-            .bind(init_price)
+            .bind(initial_price)
             .bind(target_price)
             .execute(&self.conn)
             .await?;
@@ -367,21 +367,21 @@ impl Client {
     }
 
     pub async fn get_all_triggers(&self) -> Result<Vec<data::Trigger>, Box<dyn std::error::Error>> {
-        let mut rows = sqlx::query("SELECT rowid, coin_id, currency_id, init_price, target_price FROM triggers")
+        let mut rows = sqlx::query("SELECT rowid, coin_id, currency_id, initial_price, target_price FROM triggers")
             .fetch(&self.conn);
         let mut vec: Vec<data::Trigger> = Vec::new();
         while let Some(row) = rows.try_next().await? {
             let rowid: i64 = row.try_get("rowid")?;
-            let coin_id: i64 = row.try_get("coin")?;
-            let currency_id: i64 = row.try_get("currency")?;
-            let old_price: f64 = row.try_get("old_price")?;
-            let new_price: f64 = row.try_get("new_price")?;
+            let coin_id: i64 = row.try_get("coin_id")?;
+            let currency_id: i64 = row.try_get("currency_id")?;
+            let initial_price: f64 = row.try_get("initial_price")?;
+            let target_price: f64 = row.try_get("target_price")?;
             vec.push(data::Trigger {
                 rowid,
                 coin_id,
                 currency_id,
-                old_price,
-                new_price
+                initial_price,
+                target_price
             })
         }
         Ok(vec)
