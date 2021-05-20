@@ -311,4 +311,24 @@ impl Client {
             .await?;
         Ok(())
     }
+
+    pub async fn get_all_triggers(&mut self) -> Result<Vec<data::Trigger>, Box<dyn std::error::Error>>{
+        let mut rows = sqlx::query("SELECT * FROM triggers")
+            .fetch(&self.conn);
+        let mut vec: Vec<data::Trigger> = Vec::new();
+        while let Some(row) = rows.try_next().await? {
+            let coin = row.try_get("coin")?;
+            let currency = row.try_get("currency")?;
+            let old_price = row.try_get("old_price")?;
+            let new_price = row.try_get("new_price")?;
+            vec.push(data::Trigger{
+                coin,
+                currency,
+                old_price,
+                new_price
+            })
+        }
+        Ok(vec)
+    }
+
 }

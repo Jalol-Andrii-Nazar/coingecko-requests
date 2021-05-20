@@ -41,6 +41,14 @@ pub struct MarketChart {
     pub raw: RawMarketChart,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct Trigger {
+    pub coin: String,
+    pub currency: String, 
+    pub old_price: i64, 
+    pub new_price: i64,
+}
+
 struct RawMarketChartVisitor;
 
 impl <'de> Visitor<'de> for RawMarketChartVisitor {
