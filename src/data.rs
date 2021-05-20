@@ -43,8 +43,9 @@ pub struct MarketChart {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Trigger {
-    pub coin: String,
-    pub currency: String, 
+    pub rowid: i64,
+    pub coin_id: i64,
+    pub currency_id: i64, 
     pub old_price: f64, 
     pub new_price: f64,
 }

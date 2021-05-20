@@ -10,7 +10,7 @@ pub mod caching_client;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = api_client::Client::new();
 
-    let mut caching_client = caching_client::Client::new(client).await?;
+    let caching_client = caching_client::Client::new(client).await?;
 
     let _res1 = caching_client.vs_currencies().await?;
     let res2 = caching_client.vs_currencies().await?;

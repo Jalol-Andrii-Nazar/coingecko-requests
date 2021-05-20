@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use directories::ProjectDirs;
-use sqlx::{Connection, Row, SqliteConnection, SqlitePool, sqlite::SqliteRow};
+use sqlx::{Row, SqlitePool, sqlite::SqliteRow};
 use futures::TryStreamExt;
 use crate::{data, api_client};
 
@@ -29,27 +29,73 @@ impl Client {
         let db_path_str = db_path.to_str()
             .ok_or::<Box<dyn std::error::Error>>(From::from("db_path cannot be converted to str!"))?;
         let connection_url = format!("sqlite:{}", db_path_str);
-        let mut conn: SqlitePool = SqlitePool::connect(&connection_url).await?;
+        let conn: SqlitePool = SqlitePool::connect(&connection_url).await?;
 
-        sqlx::query("CREATE TABLE IF NOT EXISTS vs_currencies (rowid INTEGER PRIMARY KEY, name TEXT, favourite BOOL)")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS vs_currencies (
+                rowid INTEGER PRIMARY KEY, 
+                name TEXT, 
+                favourite BOOL)"
+            )
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS coins (rowid INTEGER PRIMARY KEY, id TEXT, symbol TEXT, name TEXT, favourite BOOL)")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS coins (
+                rowid INTEGER PRIMARY KEY, 
+                id TEXT, 
+                symbol TEXT, 
+                name TEXT, 
+                favourite BOOL)"
+            )
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_meta (rowid INTEGER PRIMARY KEY, id TEXT, currency TEXT, from_timestamp INTEGER, to_timestamp INTEGER)")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS market_chart_range_meta (
+                rowid INTEGER PRIMARY KEY, 
+                id TEXT, 
+                currency TEXT, 
+                from_timestamp INTEGER, 
+                to_timestamp INTEGER)"
+            )
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_prices (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS market_chart_range_prices (
+                parent_rowid INTEGER, 
+                timestamp INTEGER, 
+                value REAL, 
+                CONSTRAINT market_chart_range_prices__parent_rowid_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))"
+            )
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_market_caps (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS market_chart_range_market_caps (
+                parent_rowid INTEGER, 
+                timestamp INTEGER, 
+                value REAL, 
+                CONSTRAINT market_chart_range_market_caps__parent_rowid_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))"
+            )
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS market_chart_range_total_volumes (parent_rowid INTEGER, timestamp INTEGER, value REAL, CONSTRAINT parent_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS market_chart_range_total_volumes (
+                parent_rowid INTEGER, 
+                timestamp INTEGER, 
+                value REAL, 
+                CONSTRAINT market_chart_range_total_volumes__parent_rowid_fk FOREIGN KEY (parent_rowid) REFERENCES market_chart_range_meta (rowid))"
+            )
             .execute(&conn)
             .await?;
-        sqlx::query("CREATE TABLE IF NOT EXISTS triggers (trigger_id INTEGER PRIMARY KEY AUTOINCREMENT, coin TEXT, currency TEXT, old_price REAL, new_price REAL)")
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS triggers (
+                rowid INTEGER PRIMARY KEY, 
+                coin_id TEXT, 
+                currency_id TEXT, 
+                initial_price REAL, 
+                target_price REAL,
+                CONSTRAINT triggers__coin_id_fk FOREIGN KEY (coin_id) REFERNCES coins (rowid),
+                CONSTRAINT triggers__currency_id_fk FOREIGN KEY (currency_id) REFERENCES currencies (rowid)"
+            )
             .execute(&conn)
             .await?;
 
@@ -67,7 +113,7 @@ impl Client {
         Ok(self.api_client.price(ids, vs_currencies).await?)
     }
 
-    pub async fn vs_currencies(&mut self) -> Result<Vec<data::VsCurrency>, Box<dyn std::error::Error>> {
+    pub async fn vs_currencies(&self) -> Result<Vec<data::VsCurrency>, Box<dyn std::error::Error>> {
         let count: i64 = sqlx::query("SELECT COUNT(*) FROM vs_currencies")
             .fetch_one(&self.conn)
             .await?
@@ -93,7 +139,7 @@ impl Client {
         Ok(vec)
     }
 
-    pub async fn favourite_vs_currencies(&mut self) -> Result<Vec<data::VsCurrency>, Box<dyn std::error::Error>> {
+    pub async fn favourite_vs_currencies(&self) -> Result<Vec<data::VsCurrency>, Box<dyn std::error::Error>> {
         Ok(self.vs_currencies()
             .await?
             .into_iter()
@@ -101,7 +147,7 @@ impl Client {
             .collect())
     }
 
-    pub async fn set_favourite_vs_currency(&mut self, id: i64, is_favourite: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn set_favourite_vs_currency(&self, id: i64, is_favourite: bool) -> Result<(), Box<dyn std::error::Error>> {
         sqlx::query("UPDATE vs_currencies SET favourite = ? WHERE rowid = ?")
             .bind(is_favourite)
             .bind(id)
@@ -110,7 +156,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn coins(&mut self) -> Result<Vec<data::Coin>, Box<dyn std::error::Error>> {
+    pub async fn coins(&self) -> Result<Vec<data::Coin>, Box<dyn std::error::Error>> {
         let count: i64 = sqlx::query("SELECT COUNT(*) FROM coins")
             .fetch_one(&self.conn)
             .await?
@@ -140,7 +186,7 @@ impl Client {
         Ok(vec)
     }
 
-    pub async fn favourite_coins(&mut self) -> Result<Vec<data::Coin>, Box<dyn std::error::Error>> {
+    pub async fn favourite_coins(&self) -> Result<Vec<data::Coin>, Box<dyn std::error::Error>> {
         Ok(self.coins()
             .await?
             .into_iter()
@@ -148,7 +194,7 @@ impl Client {
             .collect())
     }
 
-    pub async fn set_favourite_coin(&mut self, id: i64, is_favourite: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn set_favourite_coin(&self, id: i64, is_favourite: bool) -> Result<(), Box<dyn std::error::Error>> {
         sqlx::query("UPDATE coins SET favourite = ? WHERE rowid = ?")
             .bind(is_favourite)
             .bind(id)
@@ -157,7 +203,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn market_chart(&mut self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::MarketChart, Box<dyn std::error::Error>> {
+    pub async fn market_chart(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<data::MarketChart, Box<dyn std::error::Error>> {
         let meta_rowid_opt: Option<i64> = sqlx::query("SELECT rowid FROM market_chart_range_meta WHERE id = ? AND currency = ? AND from_timestamp = ? AND to_timestamp = ?")
             .bind(id)
             .bind(currency)
@@ -226,7 +272,7 @@ impl Client {
     }
     
 
-    async fn populate_vs_currencies(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn populate_vs_currencies(&self) -> Result<(), Box<dyn std::error::Error>> {
         println!("Receiving vs currencies data from the CoinGecko API...");
         let default_favourite_vs_currencies = vec!["btc", "eth", "ltc", "usd", "eur", "cad", "aud", "jpy", "pln", "rub", "uah"];
         let data = self.api_client.vs_currencies().await?;
@@ -242,7 +288,7 @@ impl Client {
         Ok(())
     }
 
-    async fn populate_coins(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn populate_coins(&self) -> Result<(), Box<dyn std::error::Error>> {
         println!("Receiving coins data from the CoinGecko API...");
         let default_favourite_coins = vec!["btc", "ltc", "eth", "doge", "xmr"];
         let data = self.api_client.coins().await?;
@@ -259,7 +305,7 @@ impl Client {
         Ok(())
     }
 
-    async fn populate_market_chart_data(&mut self, id: &str, currency: &str, from: u64, to: u64) -> Result<i64, Box<dyn std::error::Error>> {
+    async fn populate_market_chart_data(&self, id: &str, currency: &str, from: u64, to: u64) -> Result<i64, Box<dyn std::error::Error>> {
         println!("Receiving market chart data from the CoinGecko API...");
         let data = self.api_client.market_chart(id, currency, from, to).await?;
         let meta_rowid = sqlx::query("INSERT INTO market_chart_range_meta (id, currency, from_timestamp, to_timestamp) VALUES (?, ?, ?, ?)")
@@ -301,29 +347,39 @@ impl Client {
         Ok(meta_rowid)
     }
 
-    pub async fn add_trigger(&mut self, coin: &str, currency: &str, old_price: f64, value: f64) -> Result<(), Box<dyn std::error::Error>> {
-        sqlx::query("INSERT INTO triggers(coin, currency, old_price, new_price) VALUES (?, ?, ?, ?)")
-            .bind(coin)
-            .bind(currency)
-            .bind(old_price)
-            .bind(value)
+    pub async fn add_trigger(&self, coin_id: i64, currency_id: i64, init_price: f64, target_price: f64) -> Result<(), Box<dyn std::error::Error>> {
+        sqlx::query("INSERT INTO triggers (coin_id, currency_id, init_price, target_price) VALUES (?, ?, ?, ?)")
+            .bind(coin_id)
+            .bind(currency_id)
+            .bind(init_price)
+            .bind(target_price)
             .execute(&self.conn)
             .await?;
         Ok(())
     }
 
-    pub async fn get_all_triggers(&mut self) -> Result<Vec<data::Trigger>, Box<dyn std::error::Error>>{
-        let mut rows = sqlx::query("SELECT * FROM triggers")
+    pub async fn delete_trigger(&self, rowid: i64) -> Result<(), Box<dyn std::error::Error>> {
+        sqlx::query("DELETE FROM triggers WHERE rowid = ?")
+            .bind(rowid)
+            .execute(&self.conn)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_all_triggers(&self) -> Result<Vec<data::Trigger>, Box<dyn std::error::Error>> {
+        let mut rows = sqlx::query("SELECT rowid, coin_id, currency_id, init_price, target_price FROM triggers")
             .fetch(&self.conn);
         let mut vec: Vec<data::Trigger> = Vec::new();
         while let Some(row) = rows.try_next().await? {
-            let coin = row.try_get("coin")?;
-            let currency = row.try_get("currency")?;
-            let old_price = row.try_get("old_price")?;
-            let new_price = row.try_get("new_price")?;
-            vec.push(data::Trigger{
-                coin,
-                currency,
+            let rowid: i64 = row.try_get("rowid")?;
+            let coin_id: i64 = row.try_get("coin")?;
+            let currency_id: i64 = row.try_get("currency")?;
+            let old_price: f64 = row.try_get("old_price")?;
+            let new_price: f64 = row.try_get("new_price")?;
+            vec.push(data::Trigger {
+                rowid,
+                coin_id,
+                currency_id,
                 old_price,
                 new_price
             })
